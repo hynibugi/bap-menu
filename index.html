@@ -97,7 +97,6 @@
       dates.forEach(d => {
         const today = isToday(d);
         const items = (menus[d] || []).filter(i => i && !i.startsWith('*') && i !== '*');
-        const notice = (menus[d] || []).find(i => i && i.startsWith('*') && i.length > 1);
         const dateStr = d.replace(/\s*\(.*\)/, '');
         const dow = d.match(/\((\S+)\)/)?.[1] || '';
         html += `
@@ -110,7 +109,6 @@
             <ul class="menu-list">
               ${items.map(i => `<li>${i}</li>`).join('')}
             </ul>
-            ${notice ? `<p class="menu-notice">${notice}</p>` : ''}
           </div>`;
       });
       html += '</div>';
