@@ -84,7 +84,7 @@
         return;
       }
 
-      // 텍스트 메뉴: 주간 테이블
+      // 텍스트 메뉴: 날짜별 카드
       const dates = cafe.dates || [];
       const menus = cafe.menus || {};
 
@@ -93,26 +93,27 @@
         return;
       }
 
-      const maxRows = Math.max(...dates.map(d => (menus[d] || []).length));
-
-      let html = '<div class="menu-table-wrap"><table class="menu-table"><thead><tr>';
+      let html = '<div class="menu-cards">';
       dates.forEach(d => {
         const today = isToday(d);
-        html += `<th class="${today ? 'today' : ''}">${d.replace(/\s*\(.*\)/, '')}<br><span class="dow">${d.match(/\((\S+)\)/)?.[1] || ''}</span></th>`;
+        const items = (menus[d] || []).filter(i => i && !i.startsWith('*') && i !== '*');
+        const notice = (menus[d] || []).find(i => i && i.startsWith('*') && i.length > 1);
+        const dateStr = d.replace(/\s*\(.*\)/, '');
+        const dow = d.match(/\((\S+)\)/)?.[1] || '';
+        html += `
+          <div class="menu-card ${today ? 'today' : ''}">
+            <div class="card-header">
+              <span class="card-date">${dateStr}</span>
+              <span class="card-dow">${dow}</span>
+              ${today ? '<span class="today-badge">오늘</span>' : ''}
+            </div>
+            <ul class="menu-list">
+              ${items.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+            ${notice ? `<p class="menu-notice">${notice}</p>` : ''}
+          </div>`;
       });
-      html += '</tr></thead><tbody>';
-
-      for (let r = 0; r < maxRows; r++) {
-        html += '<tr>';
-        dates.forEach(d => {
-          const item = (menus[d] || [])[r] || '';
-          const today = isToday(d);
-          html += `<td class="${today ? 'today' : ''}">${item}</td>`;
-        });
-        html += '</tr>';
-      }
-
-      html += '</tbody></table></div>';
+      html += '</div>';
       content.innerHTML = html;
     }
 
