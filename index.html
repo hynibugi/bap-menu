@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구내식당 메뉴</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <div class="page-header">
+      <h1>🍱 구내식당 메뉴</h1>
+      <p id="updated-at">불러오는 중...</p>
+    </div>
+
+    <!-- 구내식당 탭 버튼 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-key="지하구내">지하구내</button>
+      <button class="tab-btn" data-key="에이스하이테크21">에이스하이테크21</button>
+      <button class="tab-btn" data-key="영상구내">영상구내</button>
+    </div>
+
+    <!-- 메뉴 콘텐츠 -->
+    <div id="menu-content">
+      <div class="loading">메뉴를 불러오는 중입니다...</div>
+    </div>
+
+  </div>
+
+  <script>
+    const MENU_JSON = './data/menu.json';
+    const DAYS = ['월', '화', '수', '목', '금'];
+
+    let menuData = null;
+    let activeKey = '지하구내';
+
+    // 날짜 포맷
+    function todayKor() {
+      const d = new Date();
+      const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+      return `${d.getMonth()+1}월 ${d.getDate()}일 (${dow})`;
+    }
+
+    function isToday(dateStr) {
+      return dateStr.replace(/\s/g, '').includes(todayKor().replace(/\s/g, ''));
+    }
+
+    // 탭 전환
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeKey = btn.dataset.key;
+        renderMenu();
+      });
+    });
+
+    // 메뉴 렌더링
+    function renderMenu() {
+      const content = document.getElementById('menu-content');
+      const cafe = menuData?.cafeterias?.[activeKey];
+
+      if (!cafe || cafe.status === 'pending') {
+        content.innerHTML = '<div class="empty">아직 이번 주 메뉴가 업데이트되지 않았습니다.</div>';
+        return;
+      }
+
+      if (cafe.status === 'error') {
+        content.innerHTML = `<div class="empty error">메뉴를 가져오지 못했습니다 😢<br><small>${cafe.message || ''}</small></div>`;
+        return;
+      }
+
+      // 영상구내: 이미지 표시
+      if (activeKey === '영상구내') {
+        content.innerHTML = `
+          <div class="image-wrap">
+            <p class="image-title">${cafe.title || ''}</p>
+            <img src="${cafe.imageUrl}" alt="영상구내 메뉴" onerror="this.style.display='none'">
+          </div>`;
+        return;
+      }
+
+      // 텍스트 메뉴: 주간 테이블
+      const dates = cafe.dates || [];
+      const menus = cafe.menus || {};
+
+      if (!dates.length) {
+        content.innerHTML = '<div class="empty">메뉴 데이터가 없습니다.</div>';
+        return;
+      }
+
+      const maxRows = Math.max(...dates.map(d => (menus[d] || []).length));
+
+      let html = '<div class="menu-table-wrap"><table class="menu-table"><thead><tr>';
+      dates.forEach(d => {
+        const today = isToday(d);
+        html += `<th class="${today ? 'today' : ''}">${d.replace(/\s*\(.*\)/, '')}<br><span class="dow">${d.match(/\((\S+)\)/)?.[1] || ''}</span></th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      for (let r = 0; r < maxRows; r++) {
+        html += '<tr>';
+        dates.forEach(d => {
+          const item = (menus[d] || [])[r] || '';
+          const today = isToday(d);
+          html += `<td class="${today ? 'today' : ''}">${item}</td>`;
+        });
+        html += '</tr>';
+      }
+
+      html += '</tbody></table></div>';
+      content.innerHTML = html;
+    }
+
+    // 데이터 로드
+    async function loadMenu() {
+      try {
+        const res = await fetch(MENU_JSON + '?t=' + Date.now());
+        menuData = await res.json();
+
+        if (menuData.updated) {
+          const d = new Date(menuData.updated);
+          document.getElementById('updated-at').innerText =
+            `마지막 업데이트: ${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        } else {
+          document.getElementById('updated-at').innerText = '아직 업데이트 전입니다';
+        }
+
+        renderMenu();
+      } catch (e) {
+        document.getElementById('menu-content').innerHTML =
+          '<div class="empty error">메뉴 데이터를 불러오지 못했습니다.</div>';
+        document.getElementById('updated-at').innerText = '';
+      }
+    }
+
+    loadMenu();
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "updated": null,
+  "cafeterias": {
+    "지하구내": { "status": "pending" },
+    "에이스하이테크21": { "status": "pending" },
+    "영상구내": { "status": "pending" }
+  }
+}
